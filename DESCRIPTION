@@ -1,0 +1,15 @@
+Package: SA24204159
+Type: Package
+Title: Functions for calculating risk measures for common distributions
+Version: 1.0
+Date: 2024-12-02
+Author: WenHan Qian
+Maintainer: WenHan Qian <qwh_0424@mail.ustc.edu.cn>
+Description: Several R and Rcpp function are included in this package for calculating risk measures for common distributions.
+License: GPL (>= 2)
+Imports: Rcpp(>= 1.0.13),stats,ggplot2,MASS,boot,bootstrap,DAAG,microbenchmark
+LinkingTo: Rcpp
+RoxygenNote: 7.3.2
+Encoding: UTF-8
+Suggests: knitr, rmarkdown
+VignetteBuilder: knitr

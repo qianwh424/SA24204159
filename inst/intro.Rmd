@@ -1,0 +1,123 @@
+---
+title: "Introduction to SA24204159"
+author: "WenHan Qian"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to SA24204159}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## Overview
+
+_SA24204159_ is a simple R package tp calculate some risk measures for common distributions(implemented through the R package _Rcpp_).The _SA24204159.R_ file contains two user-accessible functions: _calculate_TVaR_cpp_ and _calculate_ES_cpp_. These two functions are used to compute two common risk measures for distributions: ES (Expected Shortfall) and TVaR (Tail Value-at-Risk). A C++ function, _compute_integral_sum_, is utilized to accelerate their calculation process.For the available distributions, we considered all distributions that can be generated using the qfun functions in the stats package, including Gaussian, uniform, and others. Additionally, users are allowed to specify the parameters of the distributions themselves.
+
+## Risk measure
+
+Risk measures are quantitative tools used to assess and manage the uncertainty inherent in financial, actuarial, and economic contexts. They provide a way to evaluate the potential losses associated with a portfolio, investment, or any uncertain event under varying conditions. Commonly used risk measures include Value-at-Risk (VaR) and Expected Shortfall (ES).Value-at-Risk (VaR) estimates the maximum loss that a portfolio might incur over a specified time horizon, at a given confidence level. While intuitive and widely used, VaR has limitations, such as its inability to account for losses beyond the threshold.Expected Shortfall (ES) addresses this limitation by considering the average loss that exceeds the VaR threshold. ES provides a more comprehensive view of tail risk, making it a preferred measure in risk-sensitive scenarios.
+$$
+\operatorname{TVaR}[X ; p]=\frac{1}{1-p} \int_p^1 \operatorname{VaR}[X ; \xi] d \xi, \quad 0<p<1 .
+$$
+
+Other measures, such as Tail Value-at-Risk (TVaR), focus on specific parts of the loss distribution to evaluate extreme outcomes. These risk measures are indispensable in regulatory compliance, financial decision-making, and developing robust strategies to mitigate adverse impacts.
+$$
+\operatorname{ES}[X ; p]=\mathbb{E}\left[(X-\operatorname{VaR}[X ; p])_{+}\right]=\pi_X(\operatorname{VaR}[X ; p])
+$$
+
+## R function _calculate_TVaR_cpp_ and _calculate_ES_cpp_
+
+Input and output of  _calculate_TVaR_cpp_ are as follows:
+```{r,eval=FALSE}
+# distribution a character string specifying the distribution (for example, "norm" corresponds to the standard normal)
+# p a real valued parameter taking values in (0, 1)
+# n the number of parts dividing the interval
+calculate_TVaR_cpp <- function(distribution, p, n = 10000, ...) {
+  # 构造分布函数名称
+  qfun <- paste0("q", distribution)
+  dfun <- paste0("d", distribution)
+  
+  # 检查函数是否存在
+  if (!exists(qfun, mode = "function") || !exists(dfun, mode = "function")) {
+    stop("this is not a common distribution!")
+  }
+  
+  # 计算VaR(p)
+  VaR <- do.call(qfun, c(list(p), list(...)))
+  
+  # 设置积分区间
+  lower_limit <- VaR
+  upper_limit <- VaR + max(100,n/100)  # 设置一个合适的上限（根据具体分布的尾部）
+  
+  # 生成 x 值序列
+  dx <- (upper_limit - lower_limit) / n
+  x_vals <- seq(lower_limit, upper_limit, by = dx)
+  
+  # 使用R的概率密度函数生成 y 值（即 f(x)）
+  y_vals <- sapply(x_vals, function(x) do.call(dfun, c(list(x), list(...))))
+  
+  # 使用C++函数进行加权求和
+  integral_value1 <- compute_integral_sum(x_vals[-1], y_vals[-1])* dx
+  integral_value2 <- compute_integral_sum(x_vals[-length(y_vals)], y_vals[-length(y_vals)])*dx
+  
+  # 计算TVaR
+  TVaR <- (integral_value1+integral_value2) / (2*(1 - p))
+  
+  return(round(TVaR,4))
+}
+
+```
+
+We used the C++ function _compute_integral_sum_ to accelerate the integral computations within the function.
+
+```{r,eval=FALSE}
+double compute_integral_sum(NumericVector x_vals,NumericVector y_vals) {
+   double sum = 0;
+   int n = x_vals.size();
+   // 求加权和
+   for (int i = 0; i < n; ++i) {
+     sum += x_vals[i] * y_vals[i];  // f(x)*x
+   }
+   
+   return sum;
+ }
+```
+
+In addition, we also wrote the _calculate_ES_cpp_ function to calculate the ES for common distributions. Similarly, we used the C++ function _compute_integral_sum_ to accelerate the function.
+
+```{r,eval=FALSE}
+calculate_ES_cpp <- function(distribution, p, n = 10000, ...) {
+  # 构造分布函数名称
+  qfun <- paste0("q", distribution)
+  dfun <- paste0("d", distribution)
+  
+  # 检查函数是否存在
+  if (!exists(qfun, mode = "function") || !exists(dfun, mode = "function")) {
+    stop("this is not a common distribution!")
+  }
+  
+  # 计算VaR(p)
+  VaR <- do.call(qfun, c(list(p), list(...)))
+  
+  # 设置积分区间
+  lower_limit <- VaR
+  upper_limit <- VaR + max(100,n/100)  # 设置一个合适的上限（根据具体分布的尾部）
+  
+  # 生成 x 值序列
+  dx <- (upper_limit - lower_limit) / n
+  x_vals <- seq(lower_limit, upper_limit, by = dx)
+  
+  # 使用R的概率密度函数生成 y 值（即 f(x)）
+  y_vals <- sapply(x_vals, function(x) do.call(dfun, c(list(x), list(...))))
+  
+  # 使用C++函数进行加权求和
+  integral_value1 <- compute_integral_sum(x_vals[-1], y_vals[-1])* dx
+  integral_value2 <- compute_integral_sum(x_vals[-length(y_vals)], y_vals[-length(y_vals)])*dx
+  
+  # 计算ES
+  ES <- (integral_value1+integral_value2) / 2 + VaR
+  
+  return(round(ES,4))
+}
+```
+
