@@ -45,9 +45,8 @@
 #    for (int i = 0; i < n; ++i) {
 #      sum += x_vals[i] * y_vals[i];  // f(x)*x
 #    }
-# 
 #    return sum;
-#  }
+# }
 
 ## ----eval=FALSE---------------------------------------------------------------
 # calculate_ES_cpp <- function(distribution, p, n = 10000, ...) {
@@ -79,8 +78,20 @@
 #   integral_value2 <- compute_integral_sum(x_vals[-length(y_vals)], y_vals[-length(y_vals)])*dx
 # 
 #   # 计算ES
-#   ES <- (integral_value1+integral_value2) / 2 + VaR
+#   ES <- ((integral_value1+integral_value2) / (2*(1 - p)) - VaR) * (1-p)
 # 
 #   return(round(ES,4))
 # }
+
+## -----------------------------------------------------------------------------
+library(SA24204159)
+calculate_TVaR_cpp("norm",p=0.95)
+calculate_TVaR_cpp("norm",p=0.95,sd=5)
+calculate_TVaR_cpp("norm",p=0.95,mean=100,sd=5)
+
+## -----------------------------------------------------------------------------
+calculate_ES_cpp("norm",p=0.95)
+calculate_ES_cpp("norm",p=0.95,sd=5)
+calculate_ES_cpp("norm",p=0.95,mean=100,sd=5)
+calculate_ES_cpp("exp",p=0.95,rate=2)
 

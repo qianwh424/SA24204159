@@ -78,10 +78,10 @@ double compute_integral_sum(NumericVector x_vals,NumericVector y_vals) {
    for (int i = 0; i < n; ++i) {
      sum += x_vals[i] * y_vals[i];  // f(x)*x
    }
-   
    return sum;
- }
+}
 ```
+
 
 In addition, we also wrote the _calculate_ES_cpp_ function to calculate the ES for common distributions. Similarly, we used the C++ function _compute_integral_sum_ to accelerate the function.
 
@@ -115,9 +115,27 @@ calculate_ES_cpp <- function(distribution, p, n = 10000, ...) {
   integral_value2 <- compute_integral_sum(x_vals[-length(y_vals)], y_vals[-length(y_vals)])*dx
   
   # 计算ES
-  ES <- (integral_value1+integral_value2) / 2 + VaR
+  ES <- ((integral_value1+integral_value2) / (2*(1 - p)) - VaR) * (1-p)
   
   return(round(ES,4))
 }
+```
+
+
+## examples
+
+Here are some usage examples of the functions mentioned above.
+```{r}
+library(SA24204159)
+calculate_TVaR_cpp("norm",p=0.95)
+calculate_TVaR_cpp("norm",p=0.95,sd=5)
+calculate_TVaR_cpp("norm",p=0.95,mean=100,sd=5)
+```
+
+```{r}
+calculate_ES_cpp("norm",p=0.95)
+calculate_ES_cpp("norm",p=0.95,sd=5)
+calculate_ES_cpp("norm",p=0.95,mean=100,sd=5)
+calculate_ES_cpp("exp",p=0.95,rate=2)
 ```
 

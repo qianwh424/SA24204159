@@ -115,7 +115,7 @@ calculate_ES_cpp <- function(distribution, p, n = 10000, ...) {
   integral_value2 <- compute_integral_sum(x_vals[-length(y_vals)], y_vals[-length(y_vals)])*dx
   
   # 计算ES
-  ES <- (integral_value1+integral_value2) / 2 - VaR
+  ES <- ((integral_value1+integral_value2) / (2*(1 - p)) - VaR) * (1-p)
   
   return(round(ES,4))
 }
